@@ -5,7 +5,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from websockets.exceptions import InvalidMessage
 
-PORT = int(os.environ.get("PORT", 8080))  # Render-assigned WebSocket port
+PORT = int(os.environ.get("PORT", 8080))  # WebSocket port
 HTTP_PORT = 8081  # Separate HTTP port for health checks
 
 # 🚀 WebSocket Handler
@@ -40,8 +40,17 @@ def start_http_server():
 # ✅ WebSocket Server with Error Handling
 async def start_websocket_server():
     print(f"✅ WebSocket Server Running on ws://0.0.0.0:{PORT}")
+
+    async def custom_handler(websocket, path):
+        """ Ensure only GET requests are processed for WebSockets """
+        if websocket.request_headers.get("Upgrade", "").lower() != "websocket":
+            print("❌ Non-WebSocket request received, ignoring.")
+            return
+
+        await handle_client(websocket, path)
+
     try:
-        async with websockets.serve(handle_client, "0.0.0.0", PORT):
+        async with websockets.serve(custom_handler, "0.0.0.0", PORT):
             await asyncio.Future()  # Keep running
     except InvalidMessage as e:
         print(f"⚠️ Ignoring invalid request: {e}")
