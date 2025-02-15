@@ -21,14 +21,16 @@ async def handle_client(websocket, path):
 # 🌍 HTTP Server for Health Checks
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_HEAD(self):
+        print(f"Received HEAD request from {self.client_address}")  # Log HEAD requests
         self.send_response(200)
         self.end_headers()
 
     def do_GET(self):
+        print(f"Received GET request from {self.client_address}")  # Log GET requests
         self.send_response(200)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
-        self.wfile.write(b"OK")  # Render health check response
+        self.wfile.write(b"OK")
 
 def start_http_server():
     server = HTTPServer(("0.0.0.0", HTTP_PORT), HealthCheckHandler)
