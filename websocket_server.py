@@ -1,25 +1,29 @@
 import asyncio
 import websockets
 
+connected_clients = set()
+
 async def handle_client(websocket, path):
+    connected_clients.add(websocket)
     try:
         async for message in websocket:
             print(f"Received: {message}")
-            await websocket.send(f"Echo: {message}")
-    except websockets.exceptions.ConnectionClosedError:
-        print("Client disconnected")
-    except Exception as e:
-        print(f"Unexpected error: {e}")
+            for client in connected_clients:
+                if client != websocket:
+                    await client.send(message)  # Broadcast message
+    finally:
+        connected_clients.remove(websocket)
 
-# 🔴 Reject HTTP requests (Render health checks, browsers, etc.)
-async def process_request(path, request_headers):
-    if "Upgrade" not in request_headers or request_headers["Upgrade"].lower() != "websocket":
-        return (426, [], b"WebSocket connection required\n")
+async def websocket_handler(websocket, path):
+    """ Handles WebSocket connections, rejecting non-WebSocket requests. """
+    if path != "/":
+        await websocket.close()
+        return
+    
+    await handle_client(websocket, path)
 
 async def start_server():
-    server = await websockets.serve(
-        handle_client, "0.0.0.0", 8080, process_request=process_request
-    )
+    server = await websockets.serve(websocket_handler, "0.0.0.0", 8080)
     print("✅ WebSocket Server Running on ws://0.0.0.0:8080")
     await server.wait_closed()
 
