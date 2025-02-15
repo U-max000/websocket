@@ -1,7 +1,12 @@
 import asyncio
 import websockets
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import os
 
+PORT = int(os.environ.get("PORT", 8080))  # Default to 8080 if PORT is not set
+
+server = await websockets.serve(handle_client, "0.0.0.0", PORT)
+print(f"✅ WebSocket Server Running on ws://0.0.0.0:{PORT}")
 # Handle HTTP requests (to prevent HEAD error)
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_HEAD(self):
