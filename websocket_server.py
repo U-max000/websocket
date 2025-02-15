@@ -1,29 +1,26 @@
 import asyncio
 import websockets
 
-connected_clients = set()
-
 async def handle_client(websocket, path):
-    connected_clients.add(websocket)
     try:
         async for message in websocket:
-            print(f"📩 Received: {message}")
-            for client in connected_clients:
-                if client != websocket:
-                    await client.send(message)  # Broadcast Morse code to all clients
-    except websockets.exceptions.ConnectionClosed:
-        print("❌ A client disconnected.")
-    finally:
-        connected_clients.remove(websocket)
+            print(f"Received: {message}")
+            await websocket.send(f"Echo: {message}")
+    except websockets.exceptions.ConnectionClosedError:
+        print("Client disconnected")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+
+# 🔴 Reject HTTP requests (Render health checks, browsers, etc.)
+async def process_request(path, request_headers):
+    if "Upgrade" not in request_headers or request_headers["Upgrade"].lower() != "websocket":
+        return (426, [], b"WebSocket connection required\n")
 
 async def start_server():
-    server = await websockets.serve(handle_client, "0.0.0.0", 8080)
+    server = await websockets.serve(
+        handle_client, "0.0.0.0", 8080, process_request=process_request
+    )
     print("✅ WebSocket Server Running on ws://0.0.0.0:8080")
     await server.wait_closed()
 
-# Fix for Python 3.13: Explicitly create and run the event loop
-if __name__ == "__main__":
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(start_server())
-    loop.run_forever()
+asyncio.run(start_server())
