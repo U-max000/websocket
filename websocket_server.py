@@ -42,10 +42,10 @@ async def start_websocket_server():
     print(f"✅ WebSocket Server Running on ws://0.0.0.0:{PORT}")
 
     async def custom_handler(websocket, path):
-        """ Ensure only GET requests are processed for WebSockets """
+        """ Ensure only GET requests for WebSocket upgrade are processed """
         if websocket.request_headers.get("Upgrade", "").lower() != "websocket":
             print("❌ Non-WebSocket request received, ignoring.")
-            return
+            return  # Ignore non-WebSocket requests
 
         await handle_client(websocket, path)
 
